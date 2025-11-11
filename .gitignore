@@ -51,6 +51,8 @@ Thumbs.db
 
 # Supabase
 .supabase/
+supabase/data_insertion/.pgpass
+*.pgpass
 
 # Misc
 *.sublime-project

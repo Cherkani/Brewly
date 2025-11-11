@@ -9,7 +9,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/application/hooks/useAuth'
 import { useOrderStats, useRecentOrders } from '@/lib/application/hooks/useOrders'
-import { useAppStore } from '@/lib/infrastructure/state/stores/appStore'
+import { useLocation } from '@/lib/application/hooks/useLocation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatCents } from '@/lib/shared/utils/currency'
@@ -17,7 +17,7 @@ import { formatCents } from '@/lib/shared/utils/currency'
 export default function DashboardPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
-  const { currentLocation } = useAppStore()
+  const { currentLocation, loading: locationLoading } = useLocation()
   const { stats, loading: statsLoading } = useOrderStats()
   const { orders: recentOrders, loading: ordersLoading } = useRecentOrders(5)
 
@@ -27,7 +27,7 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
-  if (authLoading) {
+  if (authLoading || locationLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -47,9 +47,14 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">No Location Selected</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Please select a location to view the dashboard
           </p>
+          {process.env.NODE_ENV === 'development' && (
+            <p className="text-sm text-muted-foreground">
+              Use the Dev Tools panel (bottom right) to select a location
+            </p>
+          )}
         </div>
       </div>
     )
