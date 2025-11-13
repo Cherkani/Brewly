@@ -15,15 +15,7 @@ import * as orderMapper from '../mappers/orderMapper';
 export class OrderRepository implements IOrderRepository {
   private readonly ORDER_SELECT = `
     *,
-    order_items (
-      *,
-      products (name),
-      sizes (name),
-      order_item_modifiers (
-        *,
-        modifiers (name)
-      )
-    )
+    order_items (*)
   `;
 
   async findById(id: string): Promise<Order | null> {
@@ -40,15 +32,15 @@ export class OrderRepository implements IOrderRepository {
     return orderMapper.toDomain(data);
   }
 
-  async findByLocation(
-    locationId: string,
+  async findByStore(
+    storeId: string,
     status?: OrderStatus,
     limit: number = 50
   ): Promise<Order[]> {
     let query = supabase
       .from('orders')
       .select(this.ORDER_SELECT)
-      .eq('location_id', locationId);
+      .eq('store_id', storeId);
 
     if (status) {
       query = query.eq('status', status);
@@ -65,7 +57,7 @@ export class OrderRepository implements IOrderRepository {
     return data.map(orderMapper.toDomain);
   }
 
-  async getStats(locationId: string, date?: Date): Promise<{
+  async getStats(storeId: string, date?: Date): Promise<{
     queued: number;
     in_progress: number;
     ready: number;
@@ -76,7 +68,7 @@ export class OrderRepository implements IOrderRepository {
     let query = supabase
       .from('orders')
       .select('status')
-      .eq('location_id', locationId);
+      .eq('store_id', storeId);
 
     if (date) {
       const startOfDay = new Date(date);
@@ -121,16 +113,22 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async create(dto: CreateOrderDTO): Promise<Order> {
-    // This is a simplified version - in production, you'd want to handle this in a transaction
+    // Calculate total from items
+    const totalCents = dto.items.reduce(
+      (sum, item) => sum + item.priceCents * item.quantity,
+      0
+    );
+
+    // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         org_id: dto.orgId,
-        location_id: dto.locationId,
+        store_id: dto.storeId,
         cashier_id: dto.cashierId,
         status: 'queued',
-        discount_cents: dto.discountInCents || 0,
-        notes: dto.notes,
+        total_cents: totalCents,
+        notes: dto.notes || null,
       })
       .select()
       .single();
@@ -141,65 +139,21 @@ export class OrderRepository implements IOrderRepository {
 
     // Insert order items
     const orderItemsData = dto.items.map(item => ({
-      org_id: dto.orgId,
-      location_id: dto.locationId,
       order_id: order.id,
       product_id: item.productId,
-      size_id: item.sizeId,
-      qty: item.quantity,
-      base_price_cents: item.basePriceInCents,
-      line_total_cents: item.basePriceInCents * item.quantity, // Will be updated with modifiers
+      quantity: item.quantity,
+      price_cents: item.priceCents,
+      line_total_cents: item.priceCents * item.quantity,
     }));
 
-    const { data: insertedItems, error: itemsError } = await supabase
+    const { error: itemsError } = await supabase
       .from('order_items')
-      .insert(orderItemsData)
-      .select();
+      .insert(orderItemsData);
 
-    if (itemsError || !insertedItems) {
+    if (itemsError) {
       // Rollback: delete the order
       await supabase.from('orders').delete().eq('id', order.id);
-      throw new Error(`Failed to create order items: ${itemsError?.message}`);
-    }
-
-    // Insert order item modifiers if any
-    const modifierInserts: Array<{
-      org_id: string;
-      location_id: string;
-      order_item_id: string;
-      modifier_id: string;
-      price_delta_cents: number;
-    }> = [];
-
-    // Note: This is a simplified version. In production, you'd fetch modifier prices from the database
-    for (let i = 0; i < dto.items.length; i++) {
-      const item = dto.items[i];
-      const insertedItem = insertedItems[i];
-      
-      if (item.modifierIds && item.modifierIds.length > 0 && insertedItem && insertedItem.id) {
-        for (const modifierId of item.modifierIds) {
-          modifierInserts.push({
-            org_id: dto.orgId,
-            location_id: dto.locationId,
-            order_item_id: insertedItem.id,
-            modifier_id: modifierId,
-            price_delta_cents: 0, // Should fetch actual price from modifiers table
-          });
-        }
-      }
-    }
-
-    if (modifierInserts.length > 0) {
-      const { error: modifiersError } = await supabase
-        .from('order_item_modifiers')
-        .insert(modifierInserts);
-
-      if (modifiersError) {
-        // Rollback: delete order items and order
-        await supabase.from('order_items').delete().eq('order_id', order.id);
-        await supabase.from('orders').delete().eq('id', order.id);
-        throw new Error(`Failed to create order item modifiers: ${modifiersError.message}`);
-      }
+      throw new Error(`Failed to create order items: ${itemsError.message}`);
     }
 
     // Fetch and return complete order
@@ -234,23 +188,25 @@ export class OrderRepository implements IOrderRepository {
   }
 
   subscribeToOrders(
-    locationId: string,
+    storeId: string,
     callback: (order: Order) => void
   ): () => void {
     const subscription = supabase
-      .channel(`orders:${locationId}`)
+      .channel(`orders:${storeId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `location_id=eq.${locationId}`,
+          filter: `store_id=eq.${storeId}`,
         },
         async payload => {
-          const order = await this.findById(payload.new.id as string);
-          if (order) {
-            callback(order);
+          if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
+            const order = await this.findById(payload.new.id as string);
+            if (order) {
+              callback(order);
+            }
           }
         }
       )
@@ -261,4 +217,3 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 }
-

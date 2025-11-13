@@ -19,8 +19,6 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductRepository } from '@infrastructure/supabase/repositories/ProductRepository';
 import { useAppStore } from '@infrastructure/state/stores/appStore';
-import { useLocation } from '@application/hooks/useLocation';
-import { useSizes } from '@application/hooks/useProducts';
 import { theme } from '@theme/index';
 import { dollarsToCents } from '@shared/utils/currency';
 import type { CreateProductDTO } from '@domain/repositories/IProductRepository';
@@ -33,26 +31,19 @@ interface AddProductModalProps {
   onSuccess: () => void;
 }
 
-interface ProductPrice {
-  sizeId: string;
-  sizeName: string;
-  price: string; // User input as string
-}
-
 export function AddProductModal({
   visible,
   onClose,
   onSuccess,
 }: AddProductModalProps) {
-  const { currentLocation } = useLocation();
-  const { sizes } = useSizes();
+  const { currentStore } = useAppStore();
   const queryClient = useQueryClient();
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
-  const [image, setImage] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [price, setPrice] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [prices, setPrices] = useState<ProductPrice[]>([]);
 
   const createMutation = useMutation({
     mutationFn: (data: CreateProductDTO) => productRepository.create(data),
@@ -70,48 +61,9 @@ export function AddProductModal({
   const resetForm = () => {
     setName('');
     setCategory('');
-    setImage('');
+    setImageUrl('');
+    setPrice('');
     setIsActive(true);
-    setPrices([]);
-  };
-
-  const handleAddSize = () => {
-    if (sizes.length === 0) {
-      Alert.alert('No Sizes', 'Please create sizes first in your organization settings.');
-      return;
-    }
-    // Add first available size that's not already added
-    const availableSize = sizes.find(
-      s => !prices.some(p => p.sizeId === s.id)
-    );
-    if (availableSize) {
-      setPrices([...prices, { sizeId: availableSize.id, sizeName: availableSize.name, price: '' }]);
-    } else {
-      Alert.alert('All Sizes Added', 'All available sizes have been added.');
-    }
-  };
-
-  const handleRemoveSize = (index: number) => {
-    setPrices(prices.filter((_, i) => i !== index));
-  };
-
-  const handlePriceChange = (index: number, value: string) => {
-    const newPrices = [...prices];
-    newPrices[index].price = value;
-    setPrices(newPrices);
-  };
-
-  const handleSizeChange = (index: number, sizeId: string) => {
-    const selectedSize = sizes.find(s => s.id === sizeId);
-    if (selectedSize) {
-      const newPrices = [...prices];
-      newPrices[index] = {
-        ...newPrices[index],
-        sizeId: selectedSize.id,
-        sizeName: selectedSize.name,
-      };
-      setPrices(newPrices);
-    }
   };
 
   const handleSubmit = () => {
@@ -125,38 +77,30 @@ export function AddProductModal({
       return;
     }
 
-    if (!currentLocation) {
-      Alert.alert('Error', 'Location not selected');
+    if (!price.trim()) {
+      Alert.alert('Validation Error', 'Price is required');
       return;
     }
 
-    // Validate prices
-    const validPrices = prices
-      .filter(p => p.sizeId && p.price.trim())
-      .map(p => {
-        const priceValue = parseFloat(p.price);
-        if (isNaN(priceValue) || priceValue < 0) {
-          throw new Error(`Invalid price for ${p.sizeName}`);
-        }
-        return {
-          sizeId: p.sizeId,
-          priceInCents: dollarsToCents(priceValue),
-        };
-      });
+    if (!currentStore) {
+      Alert.alert('Error', 'Store not selected');
+      return;
+    }
 
-    if (validPrices.length === 0) {
-      Alert.alert('Validation Error', 'At least one price is required');
+    const priceValue = parseFloat(price);
+    if (isNaN(priceValue) || priceValue < 0) {
+      Alert.alert('Validation Error', 'Invalid price');
       return;
     }
 
     const productData: CreateProductDTO = {
-      orgId: currentLocation.orgId,
-      locationId: currentLocation.id,
+      orgId: currentStore.orgId,
+      storeId: currentStore.id,
       name: name.trim(),
       category: category.trim(),
-      image: image.trim() || null,
+      priceCents: dollarsToCents(priceValue),
+      imageUrl: imageUrl.trim() || null,
       isActive,
-      prices: validPrices,
     };
 
     createMutation.mutate(productData);
@@ -167,10 +111,6 @@ export function AddProductModal({
     resetForm();
     onClose();
   };
-
-  const availableSizesForSelection = sizes.filter(
-    s => !prices.some(p => p.sizeId === s.id)
-  );
 
   return (
     <Modal
@@ -222,14 +162,28 @@ export function AddProductModal({
               />
             </View>
 
+            {/* Price */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Price ($) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="decimal-pad"
+                editable={!createMutation.isPending}
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+            </View>
+
             {/* Image URL */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Image URL (optional)</Text>
               <TextInput
                 style={styles.input}
                 placeholder="https://..."
-                value={image}
-                onChangeText={setImage}
+                value={imageUrl}
+                onChangeText={setImageUrl}
                 autoCapitalize="none"
                 keyboardType="url"
                 editable={!createMutation.isPending}
@@ -255,82 +209,6 @@ export function AddProductModal({
               <Text style={styles.helperText}>
                 Active products are visible to customers
               </Text>
-            </View>
-
-            {/* Prices */}
-            <View style={styles.formGroup}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.label}>Prices *</Text>
-                <TouchableOpacity
-                  style={styles.addSizeButton}
-                  onPress={handleAddSize}
-                  disabled={createMutation.isPending || availableSizesForSelection.length === 0}
-                >
-                  <Text style={styles.addSizeButtonText}>+ Add Size</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.helperText}>
-                Add at least one size with price
-              </Text>
-
-              {prices.map((price, index) => (
-                <View key={index} style={styles.priceRow}>
-                  <View style={styles.priceRowContent}>
-                    <View style={styles.sizeSelector}>
-                      <Text style={styles.priceLabel}>Size:</Text>
-                      <View style={styles.sizeButtons}>
-                        {sizes.map((size) => (
-                          <TouchableOpacity
-                            key={size.id}
-                            style={[
-                              styles.sizeButton,
-                              price.sizeId === size.id && styles.sizeButtonActive,
-                            ]}
-                            onPress={() => handleSizeChange(index, size.id)}
-                            disabled={createMutation.isPending}
-                          >
-                            <Text
-                              style={[
-                                styles.sizeButtonText,
-                                price.sizeId === size.id && styles.sizeButtonTextActive,
-                              ]}
-                            >
-                              {size.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                    <View style={styles.priceInputContainer}>
-                      <Text style={styles.priceLabel}>Price ($):</Text>
-                      <TextInput
-                        style={styles.priceInput}
-                        placeholder="0.00"
-                        value={price.price}
-                        onChangeText={(value) => handlePriceChange(index, value)}
-                        keyboardType="decimal-pad"
-                        editable={!createMutation.isPending}
-                        placeholderTextColor={theme.colors.gray[400]}
-                      />
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveSize(index)}
-                      disabled={createMutation.isPending}
-                    >
-                      <Text style={styles.removeButtonText}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-
-              {prices.length === 0 && (
-                <View style={styles.emptyPrices}>
-                  <Text style={styles.emptyPricesText}>
-                    No prices added yet. Tap "+ Add Size" to add a price.
-                  </Text>
-                </View>
-              )}
             </View>
           </ScrollView>
 
@@ -425,104 +303,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing[2],
-  },
-  addSizeButton: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.primary[100],
-    borderRadius: theme.borderRadius.base,
-  },
-  addSizeButtonText: {
-    color: theme.colors.primary[700],
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.semibold,
-  },
-  priceRow: {
-    marginTop: theme.spacing[4],
-    padding: theme.spacing[4],
-    backgroundColor: theme.colors.gray[50],
-    borderRadius: theme.borderRadius.base,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[200],
-  },
-  priceRowContent: {
-    gap: theme.spacing[3],
-  },
-  sizeSelector: {
-    marginBottom: theme.spacing[2],
-  },
-  sizeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[2],
-  },
-  sizeButton: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.borderRadius.base,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[300],
-    backgroundColor: theme.colors.white,
-  },
-  sizeButtonActive: {
-    backgroundColor: theme.colors.primary[600],
-    borderColor: theme.colors.primary[600],
-  },
-  sizeButtonText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.gray[700],
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-  sizeButtonTextActive: {
-    color: theme.colors.white,
-  },
-  priceInputContainer: {
-    marginTop: theme.spacing[2],
-  },
-  priceLabel: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.gray[700],
-    marginBottom: theme.spacing[2],
-  },
-  priceInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.gray[300],
-    borderRadius: theme.borderRadius.base,
-    padding: theme.spacing[3],
-    fontSize: theme.typography.fontSize.base,
-    color: theme.colors.gray[900],
-    backgroundColor: theme.colors.white,
-  },
-  removeButton: {
-    marginTop: theme.spacing[2],
-    paddingVertical: theme.spacing[2],
-    alignItems: 'center',
-  },
-  removeButtonText: {
-    color: theme.colors.error.main,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-  emptyPrices: {
-    padding: theme.spacing[4],
-    backgroundColor: theme.colors.gray[50],
-    borderRadius: theme.borderRadius.base,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[200],
-    borderStyle: 'dashed',
-  },
-  emptyPricesText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.gray[500],
-    textAlign: 'center',
-  },
   modalFooter: {
     flexDirection: 'row',
     gap: theme.spacing[3],
@@ -559,4 +339,3 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
-

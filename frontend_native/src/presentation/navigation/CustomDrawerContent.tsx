@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useAuth } from '@application/hooks/useAuth';
-import { useLocation } from '@application/hooks/useLocation';
+import { useStore } from '@application/hooks/useStore';
 import { useUserRoles } from '@application/hooks/useUserRoles';
 import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { theme } from '@theme/index';
@@ -35,7 +35,7 @@ const drawerItems: DrawerItem[] = [
 
 export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const { user, signOut } = useAuth();
-  const { currentLocation } = useLocation();
+  const { currentStore } = useStore();
   const { roleInfo } = useUserRoles();
   const { developerMode, setDeveloperMode } = useAppStore();
   const [showDeveloperSwitcher, setShowDeveloperSwitcher] = useState(false);
@@ -72,18 +72,18 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                   {user.getDisplayName()}
                 </Text>
                 {/* Role Display */}
-                {roleInfo.locationRole && (
+                {roleInfo.storeRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
-                    {roleInfo.locationRole.charAt(0).toUpperCase() + roleInfo.locationRole.slice(1)}
-                    {currentLocation && ` • ${currentLocation.name}`}
+                    {roleInfo.storeRole.charAt(0).toUpperCase() + roleInfo.storeRole.slice(1)}
+                    {currentStore && ` • ${currentStore.name}`}
                   </Text>
                 )}
-                {!roleInfo.hasLocationAssignment && roleInfo.orgRole && (
+                {!roleInfo.hasStoreAssignment && roleInfo.orgRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
                     {roleInfo.orgRole.charAt(0).toUpperCase() + roleInfo.orgRole.slice(1)} • Not assigned to any store
                   </Text>
                 )}
-                {!roleInfo.hasLocationAssignment && !roleInfo.orgRole && (
+                {!roleInfo.hasStoreAssignment && !roleInfo.orgRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
                     Not assigned to any organization
                   </Text>

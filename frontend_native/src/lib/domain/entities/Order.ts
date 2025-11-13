@@ -17,39 +17,32 @@ export class Order {
   constructor(
     public readonly id: string,
     public readonly orgId: string,
-    public readonly locationId: string,
+    public readonly storeId: string,
     public readonly number: number,
     public readonly status: OrderStatus,
     public readonly cashierId: string | null,
+    public readonly totalCents: number,
     public readonly items: OrderItem[],
-    public readonly discountInCents: number,
     public readonly notes: string | null,
     public readonly createdAt: Date
   ) {
-    if (discountInCents < 0) {
-      throw new Error('Discount cannot be negative');
+    if (totalCents < 0) {
+      throw new Error('Total cannot be negative');
     }
   }
 
   /**
-   * Calculate subtotal (before discount)
+   * Calculate total from items (for validation)
    */
-  calculateSubtotal(): number {
-    return this.items.reduce((sum, item) => sum + item.lineTotalInCents, 0);
-  }
-
-  /**
-   * Calculate total (after discount)
-   */
-  calculateTotal(): number {
-    return Math.max(0, this.calculateSubtotal() - this.discountInCents);
+  calculateTotalFromItems(): number {
+    return this.items.reduce((sum, item) => sum + item.lineTotalCents, 0);
   }
 
   /**
    * Get total in dollars
    */
   getTotalInDollars(): number {
-    return this.calculateTotal() / 100;
+    return this.totalCents / 100;
   }
 
   /**
@@ -184,4 +177,3 @@ export class Order {
     return this.items.reduce((sum, item) => sum + item.quantity, 0);
   }
 }
-

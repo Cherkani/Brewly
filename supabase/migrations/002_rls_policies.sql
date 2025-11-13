@@ -191,9 +191,24 @@ CREATE POLICY user_roles_select ON user_roles
     (can_manage() AND (org_id IS NULL OR user_has_org_access(org_id)))
   );
 
--- Only superadmin can create roles
+-- Superadmin can create any role
+-- Users can create their own default cashier role (only if they don't have one)
 CREATE POLICY user_roles_insert ON user_roles
-  FOR INSERT WITH CHECK (is_superadmin());
+  FOR INSERT WITH CHECK (
+    is_superadmin() OR
+    (
+      user_id = auth.uid() AND
+      role = 'cashier' AND
+      org_id IS NOT NULL AND
+      store_id IS NOT NULL AND
+      is_default = true AND
+      NOT EXISTS (
+        SELECT 1 FROM user_roles
+        WHERE user_id = auth.uid()
+        AND is_default = true
+      )
+    )
+  );
 
 -- Only superadmin can update roles
 CREATE POLICY user_roles_update ON user_roles

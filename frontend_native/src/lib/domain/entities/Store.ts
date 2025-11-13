@@ -1,15 +1,14 @@
 /**
- * Location Entity
+ * Store Entity
  * Represents a physical store location
  */
 
-export class Location {
+export class Store {
   constructor(
     public readonly id: string,
     public readonly orgId: string,
     public readonly name: string,
     public readonly address: string | null,
-    public readonly timezone: string,
     public readonly isActive: boolean,
     public readonly createdAt: Date
   ) {}
@@ -22,7 +21,7 @@ export class Location {
   }
 
   /**
-   * Check if location is operational
+   * Check if store is operational
    */
   isOperational(): boolean {
     return this.isActive;

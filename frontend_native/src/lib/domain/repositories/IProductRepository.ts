@@ -7,22 +7,19 @@ import { Product } from '../entities/Product';
 
 export interface CreateProductDTO {
   orgId: string;
-  locationId: string;
+  storeId: string;
   name: string;
-  category: string;
-  image?: string | null;
+  category: string | null;
+  priceCents: number;
+  imageUrl?: string | null;
   isActive?: boolean;
-  prices?: Array<{
-    sizeId: string;
-    priceInCents: number;
-  }>;
-  modifierGroupIds?: string[];
 }
 
 export interface UpdateProductDTO {
   name?: string;
-  category?: string;
-  image?: string | null;
+  category?: string | null;
+  priceCents?: number;
+  imageUrl?: string | null;
   isActive?: boolean;
 }
 
@@ -33,24 +30,24 @@ export interface IProductRepository {
   findById(id: string): Promise<Product | null>;
 
   /**
-   * Find all products for a location
+   * Find all products for a store
    */
-  findByLocation(locationId: string, activeOnly?: boolean): Promise<Product[]>;
+  findByStore(storeId: string, activeOnly?: boolean): Promise<Product[]>;
 
   /**
    * Find products by category
    */
-  findByCategory(locationId: string, category: string): Promise<Product[]>;
+  findByCategory(storeId: string, category: string): Promise<Product[]>;
 
   /**
-   * Get all unique categories for a location
+   * Get all unique categories for a store
    */
-  getCategories(locationId: string): Promise<string[]>;
+  getCategories(storeId: string): Promise<string[]>;
 
   /**
    * Search products by name
    */
-  search(locationId: string, query: string): Promise<Product[]>;
+  search(storeId: string, query: string): Promise<Product[]>;
 
   /**
    * Create a new product
@@ -67,4 +64,3 @@ export interface IProductRepository {
    */
   delete(id: string): Promise<void>;
 }
-

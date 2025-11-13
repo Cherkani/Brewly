@@ -18,34 +18,34 @@ const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
 
 export function useOrders(status?: OrderStatus, limit: number = 50) {
   const queryClient = useQueryClient();
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const { data: orders = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['orders', currentLocation?.id, status, limit],
+    queryKey: ['orders', currentStore?.id, status, limit],
     queryFn: () =>
-      currentLocation
-        ? orderRepository.findByLocation(currentLocation.id, status, limit)
+      currentStore
+        ? orderRepository.findByStore(currentStore.id, status, limit)
         : Promise.resolve([]),
-    enabled: !!currentLocation,
+    enabled: !!currentStore,
     staleTime: 30 * 1000, // 30 seconds
   });
 
   // Subscribe to order updates
   useEffect(() => {
-    if (!currentLocation) return;
+    if (!currentStore) return;
 
     const unsubscribe = orderRepository.subscribeToOrders(
-      currentLocation.id,
+      currentStore.id,
       () => {
         // Invalidate orders query to trigger refetch
-        queryClient.invalidateQueries({ queryKey: ['orders', currentLocation.id] });
+        queryClient.invalidateQueries({ queryKey: ['orders', currentStore.id] });
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [currentLocation, queryClient]);
+  }, [currentStore, queryClient]);
 
   return {
     orders,
@@ -73,13 +73,13 @@ export function useOrder(orderId: string | null) {
 }
 
 export function useOrderStats(date?: Date) {
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const { data: stats, isLoading, error } = useQuery({
-    queryKey: ['orders', 'stats', currentLocation?.id, date?.toISOString()],
+    queryKey: ['orders', 'stats', currentStore?.id, date?.toISOString()],
     queryFn: () =>
-      currentLocation
-        ? orderRepository.getStats(currentLocation.id, date)
+      currentStore
+        ? orderRepository.getStats(currentStore.id, date)
         : Promise.resolve({
             queued: 0,
             in_progress: 0,
@@ -88,7 +88,7 @@ export function useOrderStats(date?: Date) {
             completed: 0,
             cancelled: 0,
           }),
-    enabled: !!currentLocation,
+    enabled: !!currentStore,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 
@@ -108,17 +108,17 @@ export function useOrderStats(date?: Date) {
 
 export function useCreateOrder() {
   const queryClient = useQueryClient();
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const mutation = useMutation({
     mutationFn: (data: CreateOrderDTO) => createOrderUseCase.execute(data),
     onSuccess: () => {
       // Invalidate orders queries
       queryClient.invalidateQueries({
-        queryKey: ['orders', currentLocation?.id],
+        queryKey: ['orders', currentStore?.id],
       });
       queryClient.invalidateQueries({
-        queryKey: ['orders', 'stats', currentLocation?.id],
+        queryKey: ['orders', 'stats', currentStore?.id],
       });
     },
   });
@@ -132,7 +132,7 @@ export function useCreateOrder() {
 
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const mutation = useMutation({
     mutationFn: ({
@@ -147,10 +147,10 @@ export function useUpdateOrderStatus() {
       queryClient.setQueryData(['orders', order.id], order);
       // Invalidate orders queries
       queryClient.invalidateQueries({
-        queryKey: ['orders', currentLocation?.id],
+        queryKey: ['orders', currentStore?.id],
       });
       queryClient.invalidateQueries({
-        queryKey: ['orders', 'stats', currentLocation?.id],
+        queryKey: ['orders', 'stats', currentStore?.id],
       });
     },
   });
@@ -161,4 +161,3 @@ export function useUpdateOrderStatus() {
     error: mutation.error,
   };
 }
-

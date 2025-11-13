@@ -7,17 +7,14 @@ import { Order, OrderStatus } from '../entities/Order';
 
 export interface CreateOrderDTO {
   orgId: string;
-  locationId: string;
-  cashierId: string;
+  storeId: string;
+  cashierId: string | null;
   items: Array<{
     productId: string;
-    sizeId: string;
     quantity: number;
-    basePriceInCents: number;
-    modifierIds: string[];
+    priceCents: number;
   }>;
-  discountInCents?: number;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface UpdateOrderStatusDTO {
@@ -31,10 +28,10 @@ export interface IOrderRepository {
   findById(id: string): Promise<Order | null>;
 
   /**
-   * Find all orders for a location
+   * Find all orders for a store
    */
-  findByLocation(
-    locationId: string,
+  findByStore(
+    storeId: string,
     status?: OrderStatus,
     limit?: number
   ): Promise<Order[]>;
@@ -42,7 +39,7 @@ export interface IOrderRepository {
   /**
    * Get order statistics
    */
-  getStats(locationId: string, date?: Date): Promise<{
+  getStats(storeId: string, date?: Date): Promise<{
     queued: number;
     in_progress: number;
     ready: number;
@@ -67,11 +64,10 @@ export interface IOrderRepository {
   cancel(id: string): Promise<Order>;
 
   /**
-   * Subscribe to order updates for a location
+   * Subscribe to order updates for a store
    */
   subscribeToOrders(
-    locationId: string,
+    storeId: string,
     callback: (order: Order) => void
   ): () => void;
 }
-

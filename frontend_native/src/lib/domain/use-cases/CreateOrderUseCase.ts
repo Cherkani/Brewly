@@ -20,7 +20,7 @@ export class CreateOrderUseCase {
       if (item.quantity <= 0) {
         throw new Error('Item quantity must be greater than 0');
       }
-      if (item.basePriceInCents < 0) {
+      if (item.priceCents < 0) {
         throw new Error('Item price cannot be negative');
       }
     }
@@ -29,4 +29,3 @@ export class CreateOrderUseCase {
     return await this.orderRepository.create(data);
   }
 }
-

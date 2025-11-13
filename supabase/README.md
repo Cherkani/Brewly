@@ -43,31 +43,14 @@ Line items for orders.
 
 1. Run `001_initial_schema.sql` to create tables
 2. Run `002_rls_policies.sql` to enable RLS and create policies
-3. Run `seed.sql` to populate with sample data
+3. Run `003_create_default_user_role_function.sql` to create function for automatic role assignment
+4. Run `seed.sql` to populate with sample data
 
 ## Setting Up Users
 
 After a user signs up via Supabase Auth, see **[USER_ROLES_GUIDE.md](./USER_ROLES_GUIDE.md)** for detailed instructions on managing user roles.
 
-Quick examples:
 
-```sql
--- Example: Create a cashier user
-INSERT INTO user_roles (user_id, role, org_id, store_id, is_default) VALUES
-('USER-AUTH-ID', 'cashier', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', true);
-
--- Example: Create an admin user
-INSERT INTO user_roles (user_id, role, org_id, store_id, is_default) VALUES
-('USER-AUTH-ID', 'admin', '00000000-0000-0000-0000-000000000001', NULL, true);
-
--- Example: Create a developer user
-INSERT INTO user_roles (user_id, role, org_id, store_id, is_default) VALUES
-('USER-AUTH-ID', 'developer', NULL, NULL, true);
-
--- Example: Create a superadmin user
-INSERT INTO user_roles (user_id, role, org_id, store_id, is_default) VALUES
-('USER-AUTH-ID', 'superadmin', NULL, NULL, true);
-```
 
 ## RLS Policies
 

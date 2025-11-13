@@ -16,7 +16,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useProducts, useCategories } from '@application/hooks/useProducts';
-import { useLocation } from '@application/hooks/useLocation';
+import { useStore } from '@application/hooks/useStore';
 import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { theme } from '@theme/index';
 import { formatCents } from '@shared/utils/currency';
@@ -28,7 +28,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const { currentLocation } = useLocation();
+  const { currentStore } = useStore();
   const { products, loading: productsLoading, refetch } = useProducts(false); // Show all products
   const { categories, loading: categoriesLoading } = useCategories();
 
@@ -37,18 +37,18 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
     const matchesCategory = !selectedCategory || product.category === selectedCategory;
     const matchesSearch = !searchQuery || 
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      (product.category && product.category.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
   const activeProducts = products.filter(p => p.isActive).length;
   const inactiveProducts = products.filter(p => !p.isActive).length;
 
-  if (!currentLocation) {
+  if (!currentStore) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>No location selected</Text>
-        <Text style={styles.emptySubtext}>Please select a location to manage menu</Text>
+        <Text style={styles.emptyText}>No store selected</Text>
+        <Text style={styles.emptySubtext}>Please select a store to manage menu</Text>
       </View>
     );
   }
@@ -57,7 +57,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
     // TODO: Navigate to product detail/edit screen
     Alert.alert(
       product.name,
-      `Category: ${product.category}\nStatus: ${product.isActive ? 'Active' : 'Inactive'}\n\nEdit functionality coming soon.`,
+      `Category: ${product.category || 'N/A'}\nStatus: ${product.isActive ? 'Active' : 'Inactive'}\n\nEdit functionality coming soon.`,
       [{ text: 'OK' }]
     );
   };
@@ -73,7 +73,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Menu Management</Text>
-          <Text style={styles.subtitle}>{currentLocation.name}</Text>
+          <Text style={styles.subtitle}>{currentStore.name}</Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
@@ -220,13 +220,6 @@ function ProductCard({
   product: Product;
   onPress: () => void;
 }) {
-  const minPrice = product.prices.length > 0
-    ? Math.min(...product.prices.map(p => p.priceInCents))
-    : 0;
-  const maxPrice = product.prices.length > 0
-    ? Math.max(...product.prices.map(p => p.priceInCents))
-    : 0;
-
   return (
     <TouchableOpacity style={styles.productCard} onPress={onPress}>
       <View style={styles.productCardContent}>
@@ -239,27 +232,10 @@ function ProductCard({
               </View>
             )}
           </View>
-          <Text style={styles.productCategory}>{product.category}</Text>
-          {product.prices.length > 0 && (
-            <Text style={styles.productPrice}>
-              {minPrice === maxPrice
-                ? formatCents(minPrice)
-                : `${formatCents(minPrice)} - ${formatCents(maxPrice)}`}
-            </Text>
-          )}
-          {product.prices.length === 0 && (
-            <Text style={styles.productPriceWarning}>No prices set</Text>
-          )}
-        </View>
-        <View style={styles.productStats}>
-          <Text style={styles.productStatText}>
-            {product.prices.length} size{product.prices.length !== 1 ? 's' : ''}
+          <Text style={styles.productCategory}>{product.category || 'Uncategorized'}</Text>
+          <Text style={styles.productPrice}>
+            {formatCents(product.priceCents)}
           </Text>
-          {product.modifierGroups.length > 0 && (
-            <Text style={styles.productStatText}>
-              {product.modifierGroups.length} modifier{product.modifierGroups.length !== 1 ? 's' : ''}
-            </Text>
-          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -462,22 +438,5 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
     color: theme.colors.primary[600],
-  },
-  productPriceWarning: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.warning.main,
-    fontStyle: 'italic',
-  },
-  productStats: {
-    flexDirection: 'row',
-    gap: theme.spacing[4],
-    marginTop: theme.spacing[2],
-    paddingTop: theme.spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-  },
-  productStatText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.gray[500],
   },
 });

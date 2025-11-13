@@ -5,12 +5,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
 
-const supabaseUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL || 
-  process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY || 
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// Get environment variables from app.json or process.env
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -67,32 +65,15 @@ export async function getCurrentUserContext() {
     return null;
   }
 
-  // Get user's organizations
-  const { data: orgMembers } = await supabase
-    .from('org_members')
-    .select('org_id, role')
-    .eq('user_id', user.id);
-
-  // Get user's locations
-  const { data: locationMembers } = await supabase
-    .from('location_members')
-    .select(`
-      location_id,
-      role,
-      locations (
-        id,
-        name,
-        org_id,
-        address,
-        timezone
-      )
-    `)
+  // Get user's roles
+  const { data: userRoles } = await supabase
+    .from('user_roles')
+    .select('role, org_id, store_id')
     .eq('user_id', user.id);
 
   return {
     user,
-    organizations: orgMembers || [],
-    locations: locationMembers || [],
+    roles: userRoles || [],
   };
 }
 

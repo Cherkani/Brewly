@@ -6,20 +6,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { ProductRepository } from '@infrastructure/supabase/repositories/ProductRepository';
-import { supabase } from '@infrastructure/supabase/client';
 
 const productRepository = new ProductRepository();
 
 export function useProducts(activeOnly: boolean = true) {
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const { data: products = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['products', currentLocation?.id, activeOnly],
+    queryKey: ['products', currentStore?.id, activeOnly],
     queryFn: () =>
-      currentLocation
-        ? productRepository.findByLocation(currentLocation.id, activeOnly)
+      currentStore
+        ? productRepository.findByStore(currentStore.id, activeOnly)
         : Promise.resolve([]),
-    enabled: !!currentLocation,
+    enabled: !!currentStore,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
@@ -50,15 +49,15 @@ export function useProduct(productId: string | null) {
 }
 
 export function useCategories() {
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const { data: categories = [], isLoading, error } = useQuery({
-    queryKey: ['categories', currentLocation?.id],
+    queryKey: ['categories', currentStore?.id],
     queryFn: () =>
-      currentLocation
-        ? productRepository.getCategories(currentLocation.id)
+      currentStore
+        ? productRepository.getCategories(currentStore.id)
         : Promise.resolve([]),
-    enabled: !!currentLocation,
+    enabled: !!currentStore,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -70,15 +69,15 @@ export function useCategories() {
 }
 
 export function useProductSearch(query: string) {
-  const { currentLocation } = useAppStore();
+  const { currentStore } = useAppStore();
 
   const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ['products', 'search', currentLocation?.id, query],
+    queryKey: ['products', 'search', currentStore?.id, query],
     queryFn: () =>
-      currentLocation && query.length >= 2
-        ? productRepository.search(currentLocation.id, query)
+      currentStore && query.length >= 2
+        ? productRepository.search(currentStore.id, query)
         : Promise.resolve([]),
-    enabled: !!currentLocation && query.length >= 2,
+    enabled: !!currentStore && query.length >= 2,
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 
@@ -88,31 +87,3 @@ export function useProductSearch(query: string) {
     error,
   };
 }
-
-export function useSizes() {
-  const { currentLocation } = useAppStore();
-
-  const { data: sizes = [], isLoading, error } = useQuery({
-    queryKey: ['sizes', currentLocation?.orgId],
-    queryFn: async () => {
-      if (!currentLocation?.orgId) return [];
-      const { data, error } = await supabase
-        .from('sizes')
-        .select('id, name')
-        .eq('org_id', currentLocation.orgId)
-        .order('name');
-      
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!currentLocation?.orgId,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
-
-  return {
-    sizes,
-    loading: isLoading,
-    error,
-  };
-}
-

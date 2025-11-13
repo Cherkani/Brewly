@@ -3,7 +3,7 @@
  * Represents an authenticated user
  */
 
-export type UserRole = 'owner' | 'admin' | 'cashier';
+export type UserRole = 'superadmin' | 'developer' | 'admin' | 'cashier';
 
 export interface UserMetadata {
   full_name?: string;
@@ -44,4 +44,3 @@ export class User {
     return !!this.metadata.avatar_url;
   }
 }
-

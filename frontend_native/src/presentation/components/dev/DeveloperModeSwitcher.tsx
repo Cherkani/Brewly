@@ -17,7 +17,7 @@ import {
 import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { supabase } from '@infrastructure/supabase/client';
 import { theme } from '@theme/index';
-import { Location } from '@domain/entities/Location';
+import { Store } from '@domain/entities/Store';
 
 interface Org {
   id: string;
@@ -33,9 +33,9 @@ export function DeveloperModeSwitcher({
   visible,
   onClose,
 }: DeveloperModeSwitcherProps) {
-  const { currentLocation, setCurrentLocation } = useAppStore();
+  const { currentStore, setCurrentStore } = useAppStore();
   const [orgs, setOrgs] = useState<Org[]>([]);
-  const [allLocations, setAllLocations] = useState<Location[]>([]);
+  const [allStores, setAllStores] = useState<Store[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -54,48 +54,47 @@ export function DeveloperModeSwitcher({
         .select('id, name')
         .order('name');
 
-      // Load all locations
-      const { data: locationsData } = await supabase
-        .from('locations')
+      // Load all stores
+      const { data: storesData } = await supabase
+        .from('stores')
         .select('*')
         .order('name');
 
       if (orgsData) setOrgs(orgsData);
-      if (locationsData) {
-        const locations = locationsData.map((loc: any) => new Location(
-          loc.id,
-          loc.org_id,
-          loc.name,
-          loc.address,
-          loc.timezone,
-          loc.is_active,
-          new Date(loc.created_at)
+      if (storesData) {
+        const stores = storesData.map((store: any) => new Store(
+          store.id,
+          store.org_id,
+          store.name,
+          store.address,
+          store.is_active,
+          new Date(store.created_at)
         ));
-        setAllLocations(locations);
+        setAllStores(stores);
       }
 
-      // Set selected org based on current location
-      if (currentLocation) {
-        setSelectedOrgId(currentLocation.orgId);
+      // Set selected org based on current store
+      if (currentStore) {
+        setSelectedOrgId(currentStore.orgId);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load organizations and locations');
+      Alert.alert('Error', 'Failed to load organizations and stores');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredLocations = selectedOrgId
-    ? allLocations.filter((loc) => loc.orgId === selectedOrgId)
+  const filteredStores = selectedOrgId
+    ? allStores.filter((store) => store.orgId === selectedOrgId)
     : [];
 
   const handleOrgSelect = (orgId: string) => {
     setSelectedOrgId(orgId);
   };
 
-  const handleLocationSelect = (location: Location) => {
-    setCurrentLocation(location);
-    Alert.alert('Success', `Switched to ${location.name}`);
+  const handleStoreSelect = (store: Store) => {
+    setCurrentStore(store);
+    Alert.alert('Success', `Switched to ${store.name}`);
     onClose();
   };
 
@@ -110,7 +109,7 @@ export function DeveloperModeSwitcher({
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Developer Mode</Text>
-            <Text style={styles.modalSubtitle}>Switch Organization & Location</Text>
+            <Text style={styles.modalSubtitle}>Switch Organization & Store</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -149,36 +148,36 @@ export function DeveloperModeSwitcher({
                 ))}
               </View>
 
-              {/* Locations */}
+              {/* Stores */}
               {selectedOrgId && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Select Location</Text>
-                  {filteredLocations.length === 0 ? (
-                    <Text style={styles.emptyText}>No locations found for this organization</Text>
+                  <Text style={styles.sectionTitle}>Select Store</Text>
+                  {filteredStores.length === 0 ? (
+                    <Text style={styles.emptyText}>No stores found for this organization</Text>
                   ) : (
-                    filteredLocations.map((location) => (
+                    filteredStores.map((store) => (
                       <TouchableOpacity
-                        key={location.id}
+                        key={store.id}
                         style={[
                           styles.optionCard,
-                          currentLocation?.id === location.id && styles.optionCardActive,
+                          currentStore?.id === store.id && styles.optionCardActive,
                         ]}
-                        onPress={() => handleLocationSelect(location)}
+                        onPress={() => handleStoreSelect(store)}
                       >
-                        <View style={styles.locationInfo}>
+                        <View style={styles.storeInfo}>
                           <Text
                             style={[
                               styles.optionText,
-                              currentLocation?.id === location.id && styles.optionTextActive,
+                              currentStore?.id === store.id && styles.optionTextActive,
                             ]}
                           >
-                            {location.name}
+                            {store.name}
                           </Text>
-                          {location.address && (
-                            <Text style={styles.locationAddress}>{location.address}</Text>
+                          {store.address && (
+                            <Text style={styles.storeAddress}>{store.address}</Text>
                           )}
                         </View>
-                        {currentLocation?.id === location.id && (
+                        {currentStore?.id === store.id && (
                           <Text style={styles.checkmark}>✓</Text>
                         )}
                       </TouchableOpacity>
@@ -273,10 +272,10 @@ const styles = StyleSheet.create({
     color: theme.colors.primary[700],
     fontWeight: theme.typography.fontWeight.semibold,
   },
-  locationInfo: {
+  storeInfo: {
     flex: 1,
   },
-  locationAddress: {
+  storeAddress: {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.gray[600],
     marginTop: theme.spacing[1],

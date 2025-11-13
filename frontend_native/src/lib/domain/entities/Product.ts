@@ -3,122 +3,58 @@
  * Pure business object representing a product in the catalog
  */
 
-import { ProductPrice } from './ProductPrice';
-import { ModifierGroup } from './ModifierGroup';
-
 export class Product {
   constructor(
     public readonly id: string,
     public readonly orgId: string,
-    public readonly locationId: string,
+    public readonly storeId: string,
     public readonly name: string,
-    public readonly category: string,
-    public readonly image: string | null,
+    public readonly category: string | null,
+    public readonly priceCents: number,
     public readonly isActive: boolean,
-    public readonly prices: ProductPrice[],
-    public readonly modifierGroups: ModifierGroup[],
+    public readonly imageUrl: string | null,
     public readonly createdAt: Date
-  ) {}
+  ) {
+    if (priceCents < 0) {
+      throw new Error('Price cannot be negative');
+    }
+  }
 
   /**
    * Check if product can be ordered
    */
   canBeOrdered(): boolean {
-    return this.isActive && this.prices.length > 0;
+    return this.isActive && this.priceCents > 0;
   }
 
   /**
-   * Get price for a specific size
+   * Get price in dollars
    */
-  getPriceForSize(sizeId: string): number | null {
-    const price = this.prices.find(p => p.sizeId === sizeId);
-    return price ? price.priceInCents / 100 : null;
+  getPriceInDollars(): number {
+    return this.priceCents / 100;
   }
 
   /**
-   * Get all available sizes
+   * Format price as currency
    */
-  getAvailableSizes(): Array<{ id: string; name: string; price: number }> {
-    return this.prices.map(p => ({
-      id: p.sizeId,
-      name: p.sizeName,
-      price: p.priceInCents / 100
-    }));
+  formatPrice(locale: string = 'en-US', currency: string = 'USD'): string {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency
+    }).format(this.getPriceInDollars());
   }
 
   /**
-   * Check if product has modifiers
+   * Get display name
    */
-  hasModifiers(): boolean {
-    return this.modifierGroups.length > 0;
+  getDisplayName(): string {
+    return this.name;
   }
 
   /**
-   * Get required modifier groups
+   * Check if product has image
    */
-  getRequiredModifierGroups(): ModifierGroup[] {
-    return this.modifierGroups.filter(g => g.required);
-  }
-
-  /**
-   * Calculate total price with modifiers
-   */
-  calculateTotalPrice(
-    sizeId: string,
-    selectedModifierIds: string[]
-  ): number | null {
-    const basePrice = this.getPriceForSize(sizeId);
-    if (basePrice === null) return null;
-
-    let modifiersCost = 0;
-    for (const modifierId of selectedModifierIds) {
-      for (const group of this.modifierGroups) {
-        const modifier = group.modifiers.find(m => m.id === modifierId);
-        if (modifier) {
-          modifiersCost += modifier.priceDeltaInCents / 100;
-          break;
-        }
-      }
-    }
-
-    return basePrice + modifiersCost;
-  }
-
-  /**
-   * Validate modifier selection
-   */
-  validateModifierSelection(selectedModifierIds: string[]): {
-    valid: boolean;
-    errors: string[];
-  } {
-    const errors: string[] = [];
-
-    for (const group of this.modifierGroups) {
-      const selectedInGroup = selectedModifierIds.filter(id =>
-        group.modifiers.some(m => m.id === id)
-      );
-
-      if (group.required && selectedInGroup.length === 0) {
-        errors.push(`${group.name} is required`);
-      }
-
-      if (selectedInGroup.length < group.minChoices) {
-        errors.push(
-          `${group.name} requires at least ${group.minChoices} selection(s)`
-        );
-      }
-
-      if (group.maxChoices && selectedInGroup.length > group.maxChoices) {
-        errors.push(
-          `${group.name} allows maximum ${group.maxChoices} selection(s)`
-        );
-      }
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors
-    };
+  hasImage(): boolean {
+    return !!this.imageUrl;
   }
 }
-

@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '@application/hooks/useAuth';
-import { useLocation } from '@application/hooks/useLocation';
+import { useStore } from '@application/hooks/useStore';
 import { useOrderStats } from '@application/hooks/useOrders';
 import { theme } from '@theme/index';
 import { formatCents } from '@shared/utils/currency';
@@ -21,7 +21,7 @@ import type { HomeStackScreenProps } from '@navigation/types';
 
 export function DashboardScreen({ navigation }: HomeStackScreenProps<'Dashboard'>) {
   const { user } = useAuth();
-  const { currentLocation } = useLocation();
+  const { currentStore } = useStore();
   const { stats, loading } = useOrderStats();
 
   if (loading) {
@@ -32,7 +32,7 @@ export function DashboardScreen({ navigation }: HomeStackScreenProps<'Dashboard'
     );
   }
 
-  if (!currentLocation) {
+  if (!currentStore) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No location selected</Text>
@@ -58,8 +58,8 @@ export function DashboardScreen({ navigation }: HomeStackScreenProps<'Dashboard'
       </View>
 
       <View style={styles.locationCard}>
-        <Text style={styles.locationLabel}>Current Location</Text>
-        <Text style={styles.locationName}>{currentLocation.name}</Text>
+        <Text style={styles.locationLabel}>Current Store</Text>
+        <Text style={styles.locationName}>{currentStore.name}</Text>
       </View>
 
       <View style={styles.statsGrid}>

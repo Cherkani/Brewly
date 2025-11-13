@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 import type { User } from '@domain/entities/User';
-import type { Location } from '@domain/entities/Location';
+import type { Store } from '@domain/entities/Store';
 
 interface AppState {
   // Auth state
@@ -13,9 +13,9 @@ interface AppState {
   isAuthenticated: boolean;
   isLoading: boolean;
 
-  // Location state
-  currentLocation: Location | null;
-  availableLocations: Location[];
+  // Store state
+  currentStore: Store | null;
+  availableStores: Store[];
 
   // Developer mode (for super admin to bypass RLS)
   developerMode: boolean;
@@ -23,21 +23,21 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
-  setCurrentLocation: (location: Location | null) => void;
-  setAvailableLocations: (locations: Location[]) => void;
+  setCurrentStore: (store: Store | null) => void;
+  setAvailableStores: (stores: Store[]) => void;
   setDeveloperMode: (enabled: boolean) => void;
   reset: () => void;
 }
 
-type AppStateData = Omit<AppState, 'setUser' | 'setLoading' | 'setCurrentLocation' | 'setAvailableLocations' | 'setDeveloperMode' | 'reset'>;
+type AppStateData = Omit<AppState, 'setUser' | 'setLoading' | 'setCurrentStore' | 'setAvailableStores' | 'setDeveloperMode' | 'reset'>;
 type SetState = (partial: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => void;
 
 const initialState: AppStateData = {
   user: null,
   isAuthenticated: false,
   isLoading: true,
-  currentLocation: null,
-  availableLocations: [],
+  currentStore: null,
+  availableStores: [],
   developerMode: false,
 };
 
@@ -55,14 +55,14 @@ export const useAppStore = create<AppState>((set: SetState) => ({
       isLoading: loading,
     }),
 
-  setCurrentLocation: (location: Location | null) =>
+  setCurrentStore: (store: Store | null) =>
     set({
-      currentLocation: location,
+      currentStore: store,
     }),
 
-  setAvailableLocations: (locations: Location[]) =>
+  setAvailableStores: (stores: Store[]) =>
     set({
-      availableLocations: locations,
+      availableStores: stores,
     }),
 
   setDeveloperMode: (enabled: boolean) =>
@@ -72,4 +72,3 @@ export const useAppStore = create<AppState>((set: SetState) => ({
 
   reset: () => set(initialState),
 }));
-

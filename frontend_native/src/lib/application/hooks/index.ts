@@ -1,10 +1,10 @@
 /**
  * Application Hooks
- * Export all custom hooks
+ * Export all application hooks
  */
 
 export * from './useAuth';
+export * from './useStore';
 export * from './useProducts';
 export * from './useOrders';
-export * from './useLocation';
-
+export * from './useUserRoles';
