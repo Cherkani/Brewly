@@ -1,6 +1,6 @@
 /**
- * Menu Screen
- * Product catalog management - view, search, filter, and add products
+ * Products Screen (MenuScreen component)
+ * View all products from the products table - search, filter, and add products
  */
 
 import React, { useState } from 'react';
@@ -21,7 +21,7 @@ import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { theme } from '@theme/index';
 import { formatCents } from '@shared/utils/currency';
 import { Product } from '@domain/entities/Product';
-import { AddProductModal } from '@components/menu/AddProductModal';
+import { AddProductModal } from '@components/products/AddProductModal';
 import type { MenuStackScreenProps } from '@navigation/types';
 
 export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
@@ -48,7 +48,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No store selected</Text>
-        <Text style={styles.emptySubtext}>Please select a store to manage menu</Text>
+        <Text style={styles.emptySubtext}>Please select a store to view products</Text>
       </View>
     );
   }
@@ -72,8 +72,8 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Menu Management</Text>
-          <Text style={styles.subtitle}>{currentStore.name}</Text>
+          <Text style={styles.title}>All Products</Text>
+          <Text style={styles.subtitle}>From products table • {currentStore.name}</Text>
         </View>
         <TouchableOpacity
           style={styles.addButton}
@@ -107,7 +107,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search products..."
+          placeholder="Search products in database..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={theme.colors.gray[400]}
@@ -166,19 +166,19 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
       {productsLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <Text style={styles.loadingText}>Loading products from database...</Text>
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>☕</Text>
+          <Text style={styles.emptyIcon}>📦</Text>
           <Text style={styles.emptyText}>
             {searchQuery || selectedCategory
               ? 'No products match your filters'
-              : 'No products yet'}
+              : 'No products in database'}
           </Text>
           <Text style={styles.emptySubtext}>
             {!searchQuery && !selectedCategory
-              ? 'Tap "+ Add" to create your first product'
+              ? 'Tap "+ Add" to add your first product to the database'
               : 'Try adjusting your search or filters'}
           </Text>
         </View>
@@ -195,7 +195,7 @@ export function MenuScreen({ navigation }: MenuStackScreenProps<'MenuList'>) {
           )}
           ListHeaderComponent={
             <Text style={styles.resultsText}>
-              Showing {filteredProducts.length} of {products.length} products
+              Showing {filteredProducts.length} of {products.length} products from database
             </Text>
           }
         />

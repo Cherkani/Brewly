@@ -28,7 +28,7 @@ type DrawerItem = {
 
 const drawerItems: DrawerItem[] = [
   { label: 'Orders', icon: '📋', route: 'Orders' },
-  { label: 'Menu', icon: '☕', route: 'Menu' },
+  { label: 'Products', icon: '📦', route: 'Menu' },
 ];
 
 export function CustomDrawerContent(props: DrawerContentComponentProps) {
@@ -36,6 +36,9 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const { currentStore } = useStore();
   const { roleInfo } = useUserRoles();
   const { developerMode, setDeveloperMode } = useAppStore();
+
+  // Debug role info
+  console.log('🎭 Drawer roleInfo:', roleInfo);
   const [showDeveloperSwitcher, setShowDeveloperSwitcher] = useState(false);
   const activeRoute = props.state.routes[props.state.index].name;
 

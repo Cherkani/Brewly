@@ -57,11 +57,15 @@ export function useUserRoles(): { roleInfo: RoleInfo; isLoading: boolean; error:
         .eq('user_id', user.id);
 
       if (userRolesData) {
+        console.log('🔍 User roles from database:', userRolesData);
+
         // Check for superadmin
         isSuperAdmin = userRolesData.some(ur => ur.role === 'superadmin');
 
         // Check for developer
         isDeveloper = userRolesData.some(ur => ur.role === 'developer');
+
+        console.log('🔍 Role detection:', { isSuperAdmin, isDeveloper });
 
         // Get organization role (admin role with org_id but no store_id)
         const orgRoleData = userRolesData.find(ur =>

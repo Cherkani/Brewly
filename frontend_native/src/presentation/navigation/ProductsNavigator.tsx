@@ -1,6 +1,6 @@
 /**
- * Menu Navigator
- * App menu and settings stack
+ * Products Navigator
+ * App products and settings stack
  */
 
 import React from 'react';
@@ -8,8 +8,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { DrawerActions } from '@react-navigation/native';
-import { MenuScreen } from '@screens/menu/MenuScreen';
-import { SettingsScreen } from '@screens/menu/SettingsScreen';
+import { MenuScreen } from '@screens/products/ProductsScreen';
+import { SettingsScreen } from '@screens/products/SettingsScreen';
 import type { MenuStackParamList } from './types';
 import { theme } from '@theme/index';
 
@@ -44,7 +44,7 @@ export function MenuNavigator() {
       <Stack.Screen
         name="MenuList"
         component={MenuScreen}
-        options={{ title: 'Menu' }}
+        options={{ title: 'Products' }}
       />
       <Stack.Screen
         name="Settings"

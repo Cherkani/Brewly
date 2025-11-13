@@ -6,7 +6,7 @@
 import React from 'react';
 import { createDrawerNavigator, type DrawerContentComponentProps } from '@react-navigation/drawer';
 import { OrdersNavigator } from './OrdersNavigator';
-import { MenuNavigator } from './MenuNavigator';
+import { MenuNavigator } from './ProductsNavigator';
 import { CustomDrawerContent } from './CustomDrawerContent';
 import type { MainTabParamList } from './types';
 import { theme } from '@theme/index';
