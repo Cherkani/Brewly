@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createDrawerNavigator, type DrawerContentComponentProps } from '@react-navigation/drawer';
 import { HomeNavigator } from './HomeNavigator';
 import { POSNavigator } from './POSNavigator';
 import { OrdersNavigator } from './OrdersNavigator';
@@ -18,19 +18,20 @@ const Drawer = createDrawerNavigator<MainTabParamList>();
 export function MainNavigator() {
   return (
     <Drawer.Navigator
-        drawerContent={(props) => <CustomDrawerContent {...props} />}
-        screenOptions={{
-          headerShown: false,
-          drawerType: 'front',
-          drawerStyle: {
-            width: 280,
-            backgroundColor: theme.colors.white,
-          },
-          overlayColor: 'rgba(0, 0, 0, 0.5)',
-          drawerActiveTintColor: theme.colors.primary[600],
-          drawerInactiveTintColor: theme.colors.gray[600],
-        }}
-      >
+      drawerContent={(props: DrawerContentComponentProps) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerType: 'front',
+        drawerStyle: {
+          width: 280,
+          backgroundColor: theme.colors.white,
+        },
+        overlayColor: 'rgba(0, 0, 0, 0.5)',
+        drawerActiveTintColor: theme.colors.primary[600],
+        drawerInactiveTintColor: theme.colors.gray[600],
+        swipeEnabled: true,
+      }}
+    >
       <Drawer.Screen
         name="Home"
         component={HomeNavigator}

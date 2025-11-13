@@ -57,3 +57,17 @@ export function toDomain(data: any): Product {
   );
 }
 
+/**
+ * Map create DTO to database insert
+ */
+export function createDTOToPersistence(dto: any): any {
+  return {
+    org_id: dto.orgId,
+    location_id: dto.locationId,
+    name: dto.name,
+    category: dto.category,
+    image: dto.image || null,
+    is_active: dto.isActive !== undefined ? dto.isActive : true,
+  };
+}
+

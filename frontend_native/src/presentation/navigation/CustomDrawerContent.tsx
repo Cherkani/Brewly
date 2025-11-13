@@ -3,18 +3,22 @@
  * Custom sidebar drawer content with navigation items
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Switch,
 } from 'react-native';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useAuth } from '@application/hooks/useAuth';
 import { useLocation } from '@application/hooks/useLocation';
+import { useUserRoles } from '@application/hooks/useUserRoles';
+import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { theme } from '@theme/index';
+import { DeveloperModeSwitcher } from '@components/dev/DeveloperModeSwitcher';
 
 type DrawerItem = {
   label: string;
@@ -32,6 +36,9 @@ const drawerItems: DrawerItem[] = [
 export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const { user, signOut } = useAuth();
   const { currentLocation } = useLocation();
+  const { roleInfo } = useUserRoles();
+  const { developerMode, setDeveloperMode } = useAppStore();
+  const [showDeveloperSwitcher, setShowDeveloperSwitcher] = useState(false);
   const activeRoute = props.state.routes[props.state.index].name;
 
   const handleNavigate = (route: string) => {
@@ -64,9 +71,21 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                 <Text style={styles.userName} numberOfLines={1}>
                   {user.getDisplayName()}
                 </Text>
-                {currentLocation && (
-                  <Text style={styles.locationName} numberOfLines={1}>
-                    {currentLocation.name}
+                {/* Role Display */}
+                {roleInfo.locationRole && (
+                  <Text style={styles.roleText} numberOfLines={1}>
+                    {roleInfo.locationRole.charAt(0).toUpperCase() + roleInfo.locationRole.slice(1)}
+                    {currentLocation && ` • ${currentLocation.name}`}
+                  </Text>
+                )}
+                {!roleInfo.hasLocationAssignment && roleInfo.orgRole && (
+                  <Text style={styles.roleText} numberOfLines={1}>
+                    {roleInfo.orgRole.charAt(0).toUpperCase() + roleInfo.orgRole.slice(1)} • Not assigned to any store
+                  </Text>
+                )}
+                {!roleInfo.hasLocationAssignment && !roleInfo.orgRole && (
+                  <Text style={styles.roleText} numberOfLines={1}>
+                    Not assigned to any organization
                   </Text>
                 )}
               </View>
@@ -98,6 +117,35 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
             );
           })}
         </View>
+
+        {/* Developer Mode Section (Super Admin Only) */}
+        {roleInfo.isSuperAdmin && (
+          <View style={styles.developerSection}>
+            <View style={styles.developerHeader}>
+              <Text style={styles.developerTitle}>Developer Mode</Text>
+              <Switch
+                value={developerMode}
+                onValueChange={setDeveloperMode}
+                trackColor={{
+                  false: theme.colors.gray[300],
+                  true: theme.colors.warning.main,
+                }}
+                thumbColor={developerMode ? theme.colors.warning.dark : theme.colors.gray[500]}
+              />
+            </View>
+            <Text style={styles.developerDescription}>
+              Bypass RLS policies and switch between organizations/locations
+            </Text>
+            {developerMode && (
+              <TouchableOpacity
+                style={styles.developerButton}
+                onPress={() => setShowDeveloperSwitcher(true)}
+              >
+                <Text style={styles.developerButtonText}>Switch Org/Location</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </DrawerContentScrollView>
 
       {/* Footer */}
@@ -110,6 +158,14 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Developer Mode Switcher Modal */}
+      {showDeveloperSwitcher && (
+        <DeveloperModeSwitcher
+          visible={showDeveloperSwitcher}
+          onClose={() => setShowDeveloperSwitcher(false)}
+        />
+      )}
     </View>
   );
 }
@@ -173,6 +229,46 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.primary[100],
+  },
+  roleText: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.primary[100],
+    marginTop: theme.spacing[1],
+  },
+  developerSection: {
+    margin: theme.spacing[4],
+    padding: theme.spacing[4],
+    backgroundColor: '#FEF3C7', // warning-100 equivalent
+    borderRadius: theme.borderRadius.base,
+    borderWidth: 1,
+    borderColor: theme.colors.warning.light,
+  },
+  developerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing[2],
+  },
+  developerTitle: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.warning.dark,
+  },
+  developerDescription: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.warning.dark,
+    marginBottom: theme.spacing[3],
+  },
+  developerButton: {
+    padding: theme.spacing[3],
+    backgroundColor: theme.colors.warning.main,
+    borderRadius: theme.borderRadius.base,
+    alignItems: 'center',
+  },
+  developerButtonText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.white,
   },
   menuSection: {
     paddingVertical: theme.spacing[2],

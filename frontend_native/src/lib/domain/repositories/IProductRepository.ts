@@ -12,6 +12,11 @@ export interface CreateProductDTO {
   category: string;
   image?: string | null;
   isActive?: boolean;
+  prices?: Array<{
+    sizeId: string;
+    priceInCents: number;
+  }>;
+  modifierGroupIds?: string[];
 }
 
 export interface UpdateProductDTO {
@@ -46,5 +51,20 @@ export interface IProductRepository {
    * Search products by name
    */
   search(locationId: string, query: string): Promise<Product[]>;
+
+  /**
+   * Create a new product
+   */
+  create(data: CreateProductDTO): Promise<Product>;
+
+  /**
+   * Update an existing product
+   */
+  update(id: string, data: UpdateProductDTO): Promise<Product>;
+
+  /**
+   * Delete a product
+   */
+  delete(id: string): Promise<void>;
 }
 

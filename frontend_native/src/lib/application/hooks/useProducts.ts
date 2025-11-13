@@ -6,6 +6,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@infrastructure/state/stores/appStore';
 import { ProductRepository } from '@infrastructure/supabase/repositories/ProductRepository';
+import { supabase } from '@infrastructure/supabase/client';
 
 const productRepository = new ProductRepository();
 
@@ -83,6 +84,33 @@ export function useProductSearch(query: string) {
 
   return {
     products,
+    loading: isLoading,
+    error,
+  };
+}
+
+export function useSizes() {
+  const { currentLocation } = useAppStore();
+
+  const { data: sizes = [], isLoading, error } = useQuery({
+    queryKey: ['sizes', currentLocation?.orgId],
+    queryFn: async () => {
+      if (!currentLocation?.orgId) return [];
+      const { data, error } = await supabase
+        .from('sizes')
+        .select('id, name')
+        .eq('org_id', currentLocation.orgId)
+        .order('name');
+      
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!currentLocation?.orgId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  return {
+    sizes,
     loading: isLoading,
     error,
   };

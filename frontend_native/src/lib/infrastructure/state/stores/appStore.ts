@@ -17,15 +17,19 @@ interface AppState {
   currentLocation: Location | null;
   availableLocations: Location[];
 
+  // Developer mode (for super admin to bypass RLS)
+  developerMode: boolean;
+
   // Actions
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
   setCurrentLocation: (location: Location | null) => void;
   setAvailableLocations: (locations: Location[]) => void;
+  setDeveloperMode: (enabled: boolean) => void;
   reset: () => void;
 }
 
-type AppStateData = Omit<AppState, 'setUser' | 'setLoading' | 'setCurrentLocation' | 'setAvailableLocations' | 'reset'>;
+type AppStateData = Omit<AppState, 'setUser' | 'setLoading' | 'setCurrentLocation' | 'setAvailableLocations' | 'setDeveloperMode' | 'reset'>;
 type SetState = (partial: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => void;
 
 const initialState: AppStateData = {
@@ -34,6 +38,7 @@ const initialState: AppStateData = {
   isLoading: true,
   currentLocation: null,
   availableLocations: [],
+  developerMode: false,
 };
 
 export const useAppStore = create<AppState>((set: SetState) => ({
@@ -58,6 +63,11 @@ export const useAppStore = create<AppState>((set: SetState) => ({
   setAvailableLocations: (locations: Location[]) =>
     set({
       availableLocations: locations,
+    }),
+
+  setDeveloperMode: (enabled: boolean) =>
+    set({
+      developerMode: enabled,
     }),
 
   reset: () => set(initialState),

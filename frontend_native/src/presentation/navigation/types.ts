@@ -84,3 +84,9 @@ export type OrdersStackScreenProps<T extends keyof OrdersStackParamList> =
     MainTabScreenProps<'Orders'>
   >;
 
+export type MenuStackScreenProps<T extends keyof MenuStackParamList> =
+  CompositeScreenProps<
+    NativeStackScreenProps<MenuStackParamList, T>,
+    MainTabScreenProps<'Menu'>
+  >;
+
