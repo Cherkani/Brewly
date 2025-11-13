@@ -35,7 +35,10 @@
     "extra": {
       "eas": {
         "projectId": "your-project-id"
-      }
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://qlvhqgtjqfdfpjordits.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdmhxZ3RqcWZkZnBqb3JkaXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDg4MDEsImV4cCI6MjA3ODI4NDgwMX0.b38JGnWhyuYM5zHtYElpdihiBUFhMYqaqLLemNSHdCk",
+      "EXPO_PUBLIC_APP_NAME": "Brewly"
     }
   }
 }

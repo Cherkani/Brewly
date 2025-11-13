@@ -1,60 +1,65 @@
 /**
  * Main Navigator
- * Main app bottom tab navigation
+ * Main app drawer navigation with sidebar
  */
 
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import { HomeNavigator } from './HomeNavigator';
 import { POSNavigator } from './POSNavigator';
 import { OrdersNavigator } from './OrdersNavigator';
 import { MenuNavigator } from './MenuNavigator';
+import { CustomDrawerContent } from './CustomDrawerContent';
 import type { MainTabParamList } from './types';
+import { theme } from '@theme/index';
 
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const Drawer = createDrawerNavigator<MainTabParamList>();
 
 export function MainNavigator() {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#6B7280',
-      }}
-    >
-      <Tab.Screen
+    <Drawer.Navigator
+        drawerContent={(props) => <CustomDrawerContent {...props} />}
+        screenOptions={{
+          headerShown: false,
+          drawerType: 'front',
+          drawerStyle: {
+            width: 280,
+            backgroundColor: theme.colors.white,
+          },
+          overlayColor: 'rgba(0, 0, 0, 0.5)',
+          drawerActiveTintColor: theme.colors.primary[600],
+          drawerInactiveTintColor: theme.colors.gray[600],
+        }}
+      >
+      <Drawer.Screen
         name="Home"
         component={HomeNavigator}
         options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: () => null, // Add icons later
+          drawerLabel: 'Dashboard',
         }}
       />
-      <Tab.Screen
+      <Drawer.Screen
         name="POS"
         component={POSNavigator}
         options={{
-          tabBarLabel: 'POS',
-          tabBarIcon: () => null,
+          drawerLabel: 'POS',
         }}
       />
-      <Tab.Screen
+      <Drawer.Screen
         name="Orders"
         component={OrdersNavigator}
         options={{
-          tabBarLabel: 'Orders',
-          tabBarIcon: () => null,
+          drawerLabel: 'Orders',
         }}
       />
-      <Tab.Screen
+      <Drawer.Screen
         name="Menu"
         component={MenuNavigator}
         options={{
-          tabBarLabel: 'Menu',
-          tabBarIcon: () => null,
+          drawerLabel: 'Menu',
         }}
       />
-    </Tab.Navigator>
+    </Drawer.Navigator>
   );
 }
 

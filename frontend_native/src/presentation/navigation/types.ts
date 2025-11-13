@@ -4,7 +4,7 @@
  */
 
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { DrawerScreenProps } from '@react-navigation/drawer';
 import type { CompositeScreenProps } from '@react-navigation/native';
 
 // Root Stack
@@ -62,7 +62,7 @@ export type AuthStackScreenProps<T extends keyof AuthStackParamList> =
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
   CompositeScreenProps<
-    BottomTabScreenProps<MainTabParamList, T>,
+    DrawerScreenProps<MainTabParamList, T>,
     NativeStackScreenProps<RootStackParamList>
   >;
 
