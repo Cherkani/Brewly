@@ -182,37 +182,39 @@ private async ensureDefaultUserRole(userId: string): Promise<void> {
 
     console.log('Signup successful, user created:', authData.user.id);
 
-    // Insert default cashier role directly (use hardcoded IDs to avoid RLS issues)
+    // Assign default cashier role using database function (bypasses RLS)
     if (authData.user.id) {
-      console.log('Inserting default cashier role...');
+      console.log('Assigning default role to new user...');
 
       try {
-        // Use hardcoded IDs from seed data to avoid needing to query orgs/stores
-        const defaultOrgId = '00000000-0000-0000-0000-000000000001'; // Default org
-        const defaultStoreId = '10000000-0000-0000-0000-000000000001'; // Main Street Store
+        console.log(`Calling database function for user ${authData.user.id}`);
 
-        console.log(`Inserting role for user ${authData.user.id} in org ${defaultOrgId}, store ${defaultStoreId}`);
+        // Call the database function that bypasses RLS
+        const { data: functionResult, error: functionError } = await supabase.rpc(
+          'assign_default_user_role',
+          { user_uuid: authData.user.id }
+        );
 
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role: 'cashier',
-            org_id: defaultOrgId,
-            store_id: defaultStoreId,
-            is_default: true,
-          });
+        if (functionError) {
+          console.error('❌ Database function failed:', functionError);
 
-        if (roleError) {
-          console.error('Role insertion failed:', roleError);
-          throw new Error(`Failed to assign role: ${roleError.message}`);
+          // Check if function doesn't exist
+          if (functionError.code === '42883') {
+            console.warn('⚠️ Database function not found - run migrations to create it');
+          }
+
+          // Don't throw error - allow signup to complete
+          console.warn('⚠️ User created successfully but role assignment failed. Contact admin for role assignment.');
+        } else {
+          console.log('✅ Role assigned successfully via database function');
+          console.log('📍 Default Organization: 00000000-0000-0000-0000-000000000001');
+          console.log('🏪 Main Street Store: 10000000-0000-0000-0000-000000000001');
         }
 
-        console.log('✅ Cashier role assigned successfully');
-      } catch (insertError) {
-        console.error('❌ Direct role insertion failed:', insertError);
-        // For now, don't throw - user can still signup, admin can assign roles later
-        console.warn('⚠️ Role assignment failed, but signup succeeded. Please contact admin to assign your role.');
+      } catch (functionCallError) {
+        console.error('❌ Unexpected error calling database function:', functionCallError);
+        // Don't throw - signup should still succeed even if role assignment fails
+        console.warn('⚠️ Role assignment encountered an error, but signup completed successfully.');
       }
     }
 

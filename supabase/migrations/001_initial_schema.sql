@@ -119,6 +119,24 @@ CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 
 -- ============================================================================
+-- FUNCTIONS
+-- ============================================================================
+
+-- Function to assign default role to new users (bypasses RLS)
+CREATE OR REPLACE FUNCTION assign_default_user_role(user_uuid UUID)
+RETURNS void AS $$
+DECLARE
+  default_org_id UUID := '00000000-0000-0000-0000-000000000001';
+  default_store_id UUID := '10000000-0000-0000-0000-000000000001';
+BEGIN
+  -- Insert role directly (this function has SECURITY DEFINER)
+  INSERT INTO user_roles (user_id, role, org_id, store_id, is_default)
+  VALUES (user_uuid, 'cashier', default_org_id, default_store_id, true)
+  ON CONFLICT (user_id, role, org_id, store_id) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
 -- COMMENTS
 -- ============================================================================
 
