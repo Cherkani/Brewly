@@ -16,17 +16,39 @@ import * as userMapper from '../mappers/userMapper';
 export class AuthRepository implements IAuthRepository {
   /**
    * Ensure user has a default role, create one if missing
-   * First tries to use the database function, then falls back to direct insert
+   * Only used for new signups, not for existing users
    */
-  private async ensureDefaultUserRole(userId: string): Promise<void> {
+private async ensureDefaultUserRole(userId: string): Promise<void> {
     try {
+      console.log('Ensuring default user role for user:', userId);
+
+      // First, check if user already has roles
+      const { data: existingRoles } = await supabase
+        .from('user_roles')
+        .select('role, is_default')
+        .eq('user_id', userId);
+
+      console.log('Existing roles for user:', existingRoles);
+
+      if (existingRoles && existingRoles.length > 0) {
+        const hasDefault = existingRoles.some(role => role.is_default);
+        if (hasDefault) {
+          console.log('User already has default role');
+          return;
+        }
+      }
+
       // First, try using the database function (if it exists)
+      console.log('Trying database function...');
       const { error: rpcError } = await supabase.rpc('ensure_default_user_role');
 
       if (!rpcError) {
+        console.log('Database function succeeded');
         // Function call succeeded
         return;
       }
+
+      console.log('Database function failed, trying direct insert:', rpcError);
 
       // If RPC function doesn't exist or fails, try direct insert
       // This will work if the RLS policy allows it
@@ -40,35 +62,60 @@ export class AuthRepository implements IAuthRepository {
   /**
    * Directly create default user role (fallback method)
    * Uses RLS policy that allows users to create their own default cashier role
+   * Assigns to "Default" org and "Main Street Store"
    */
   private async createDefaultUserRoleDirect(userId: string): Promise<void> {
     try {
-      // Get the first organization
-      const { data: orgs, error: orgsError } = await supabase
+      // Get the "Default" organization
+      let { data: orgs, error: orgsError } = await supabase
         .from('orgs')
         .select('id')
-        .order('created_at', { ascending: true })
+        .eq('name', 'Default')
         .limit(1)
         .single();
 
+      // If "Default" org doesn't exist, fallback to first org
       if (orgsError || !orgs) {
-        console.warn('No organizations found, skipping default role creation');
-        return;
+        const { data: fallbackOrg, error: fallbackError } = await supabase
+          .from('orgs')
+          .select('id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (fallbackError || !fallbackOrg) {
+          console.warn('No organizations found, skipping default role creation');
+          return;
+        }
+        orgs = fallbackOrg;
       }
 
-      // Get the first active store for this organization
-      const { data: stores, error: storesError } = await supabase
+      // Get "Main Street Store" for the Default org
+      let { data: stores, error: storesError } = await supabase
         .from('stores')
         .select('id')
         .eq('org_id', orgs.id)
+        .eq('name', 'Main Street Store')
         .eq('is_active', true)
-        .order('created_at', { ascending: true })
         .limit(1)
         .single();
 
+      // If "Main Street Store" doesn't exist, fallback to first active store
       if (storesError || !stores) {
-        console.warn('No active stores found, skipping default role creation');
-        return;
+        const { data: fallbackStore, error: fallbackStoreError } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('org_id', orgs.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (fallbackStoreError || !fallbackStore) {
+          console.warn('No active stores found, skipping default role creation');
+          return;
+        }
+        stores = fallbackStore;
       }
 
       // Check if user already has a default role
@@ -86,6 +133,7 @@ export class AuthRepository implements IAuthRepository {
       }
 
       // Create default cashier role
+      console.log('Creating default cashier role for user:', userId, 'org:', orgs.id, 'store:', stores.id);
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
@@ -99,6 +147,8 @@ export class AuthRepository implements IAuthRepository {
       if (roleError) {
         console.error('Failed to create default user role:', roleError);
         // Don't throw - user can still use the app, admin can assign roles later
+      } else {
+        console.log('Successfully created default user role');
       }
     } catch (error) {
       console.error('Error creating default user role directly:', error);
@@ -107,23 +157,63 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async signUp(data: SignUpDTO): Promise<User> {
+    console.log('Starting signup process for:', data.email, 'with role:', data.role);
+
     const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: {
           full_name: data.fullName,
+          role: data.role || 'cashier', // Store role in metadata for database function
         },
       },
     });
 
-    if (error || !authData.user) {
-      throw new Error(error?.message || 'Failed to sign up');
+    if (error) {
+      console.error('Signup error:', error);
+      throw new Error(error.message);
     }
 
-    // Create default user role after successful signup
+    if (!authData.user) {
+      console.error('No user returned from signup');
+      throw new Error('Failed to sign up - no user created');
+    }
+
+    console.log('Signup successful, user created:', authData.user.id);
+
+    // Insert default cashier role directly (use hardcoded IDs to avoid RLS issues)
     if (authData.user.id) {
-      await this.ensureDefaultUserRole(authData.user.id);
+      console.log('Inserting default cashier role...');
+
+      try {
+        // Use hardcoded IDs from seed data to avoid needing to query orgs/stores
+        const defaultOrgId = '00000000-0000-0000-0000-000000000001'; // Default org
+        const defaultStoreId = '10000000-0000-0000-0000-000000000001'; // Main Street Store
+
+        console.log(`Inserting role for user ${authData.user.id} in org ${defaultOrgId}, store ${defaultStoreId}`);
+
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: 'cashier',
+            org_id: defaultOrgId,
+            store_id: defaultStoreId,
+            is_default: true,
+          });
+
+        if (roleError) {
+          console.error('Role insertion failed:', roleError);
+          throw new Error(`Failed to assign role: ${roleError.message}`);
+        }
+
+        console.log('✅ Cashier role assigned successfully');
+      } catch (insertError) {
+        console.error('❌ Direct role insertion failed:', insertError);
+        // For now, don't throw - user can still signup, admin can assign roles later
+        console.warn('⚠️ Role assignment failed, but signup succeeded. Please contact admin to assign your role.');
+      }
     }
 
     return userMapper.toDomain(authData.user);
@@ -139,12 +229,63 @@ export class AuthRepository implements IAuthRepository {
       throw new Error(error?.message || 'Failed to sign in');
     }
 
-    // Ensure user has a default role (in case they signed up before this feature)
-    if (authData.user.id) {
-      await this.ensureDefaultUserRole(authData.user.id);
-    }
+    // NOTE: No automatic role assignment for existing users on signin
+    // Roles must be assigned manually by admins
 
     return userMapper.toDomain(authData.user);
+  }
+
+  /**
+   * Manually assign a role to a user (admin function)
+   */
+  async assignUserRole(userId: string, role: 'superadmin' | 'admin' | 'developer' | 'cashier', orgId?: string, storeId?: string): Promise<void> {
+    console.log(`Assigning role ${role} to user ${userId}`);
+
+    // If no org/store specified, use default ones
+    let finalOrgId = orgId;
+    let finalStoreId = storeId;
+
+    if (!finalOrgId || !finalStoreId) {
+      // Get default org and store
+      const { data: orgs } = await supabase
+        .from('orgs')
+        .select('id')
+        .eq('name', 'Default')
+        .single();
+
+      if (orgs) {
+        finalOrgId = orgs.id;
+
+        const { data: stores } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('org_id', orgs.id)
+          .eq('name', 'Main Street Store')
+          .eq('is_active', true)
+          .single();
+
+        if (stores) {
+          finalStoreId = stores.id;
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role,
+        org_id: finalOrgId || null,
+        store_id: finalStoreId || null,
+        is_default: true,
+      });
+
+    if (error) {
+      console.error('Failed to assign user role:', error);
+      throw new Error(`Failed to assign role: ${error.message}`);
+    }
+
+    console.log(`Successfully assigned role ${role} to user ${userId}`);
   }
 
   async signOut(): Promise<void> {
@@ -162,8 +303,8 @@ export class AuthRepository implements IAuthRepository {
       return null;
     }
 
-    // Ensure user has a default role when fetching current user
-    await this.ensureDefaultUserRole(user.id);
+    // NOTE: No automatic role assignment for existing users
+    // Roles must be assigned manually by admins
 
     return userMapper.toDomain(user);
   }
@@ -190,8 +331,8 @@ export class AuthRepository implements IAuthRepository {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
-          // Ensure user has a default role when auth state changes
-          await this.ensureDefaultUserRole(session.user.id);
+          // NOTE: No automatic role assignment for existing users
+          // Roles must be assigned manually by admins
           callback(userMapper.toDomain(session.user));
         } else {
           callback(null);

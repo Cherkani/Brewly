@@ -9,6 +9,7 @@ export interface SignUpDTO {
   email: string;
   password: string;
   fullName: string;
+  role?: 'superadmin' | 'admin' | 'developer' | 'cashier';
 }
 
 export interface SignInDTO {

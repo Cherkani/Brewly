@@ -14,21 +14,28 @@ export function useStore() {
   const { user, currentStore, availableStores, setCurrentStore, setAvailableStores } =
     useAppStore();
 
-  // Fetch available stores for user
+  // Fetch available stores for user (default store will be first)
   const { data: stores = [], isLoading } = useQuery({
     queryKey: ['stores', user?.id],
-    queryFn: () =>
-      user ? storeRepository.findByUser(user.id) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!user) return [];
+      
+      // Get all available stores (this will return all stores for developers/superadmins)
+      const allStores = await storeRepository.findByUser(user.id);
+      
+      // The repository already handles prioritizing default store
+      return allStores;
+    },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Update available stores in store
+  // Update available stores and auto-select default store
   useEffect(() => {
     if (stores.length > 0) {
       setAvailableStores(stores);
 
-      // Auto-select first store if none selected
+      // Auto-select first store (which is the default) if none selected
       if (!currentStore && stores.length > 0) {
         setCurrentStore(stores[0]);
       }

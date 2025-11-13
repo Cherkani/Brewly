@@ -5,7 +5,8 @@
 -- ============================================================================
 
 -- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+DROP EXTENSION IF EXISTS "uuid-ossp";
+CREATE EXTENSION "uuid-ossp" SCHEMA public;
 
 -- ============================================================================
 -- ENUMS

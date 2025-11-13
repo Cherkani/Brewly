@@ -5,8 +5,6 @@
 
 import React from 'react';
 import { createDrawerNavigator, type DrawerContentComponentProps } from '@react-navigation/drawer';
-import { HomeNavigator } from './HomeNavigator';
-import { POSNavigator } from './POSNavigator';
 import { OrdersNavigator } from './OrdersNavigator';
 import { MenuNavigator } from './MenuNavigator';
 import { CustomDrawerContent } from './CustomDrawerContent';
@@ -18,6 +16,7 @@ const Drawer = createDrawerNavigator<MainTabParamList>();
 export function MainNavigator() {
   return (
     <Drawer.Navigator
+      initialRouteName="Orders"
       drawerContent={(props: DrawerContentComponentProps) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
@@ -30,22 +29,8 @@ export function MainNavigator() {
         drawerActiveTintColor: theme.colors.primary[600],
         drawerInactiveTintColor: theme.colors.gray[600],
         swipeEnabled: true,
-      }}
+        }}
     >
-      <Drawer.Screen
-        name="Home"
-        component={HomeNavigator}
-        options={{
-          drawerLabel: 'Dashboard',
-        }}
-      />
-      <Drawer.Screen
-        name="POS"
-        component={POSNavigator}
-        options={{
-          drawerLabel: 'POS',
-        }}
-      />
       <Drawer.Screen
         name="Orders"
         component={OrdersNavigator}

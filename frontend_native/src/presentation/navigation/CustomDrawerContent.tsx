@@ -27,8 +27,6 @@ type DrawerItem = {
 };
 
 const drawerItems: DrawerItem[] = [
-  { label: 'Dashboard', icon: '🏠', route: 'Home' },
-  { label: 'POS', icon: '🛒', route: 'POS' },
   { label: 'Orders', icon: '📋', route: 'Orders' },
   { label: 'Menu', icon: '☕', route: 'Menu' },
 ];
@@ -72,20 +70,33 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
                   {user.getDisplayName()}
                 </Text>
                 {/* Role Display */}
-                {roleInfo.storeRole && (
+                {roleInfo.isDeveloper && (
+                  <Text style={styles.roleText} numberOfLines={1}>
+                    Developer
+                    {currentStore ? ` • ${currentStore.name}` : ' • No store selected'}
+                  </Text>
+                )}
+                {!roleInfo.isDeveloper && roleInfo.isSuperAdmin && (
+                  <Text style={styles.roleText} numberOfLines={1}>
+                    Super Admin
+                    {currentStore ? ` • ${currentStore.name}` : ' • No store selected'}
+                  </Text>
+                )}
+                {!roleInfo.isDeveloper && !roleInfo.isSuperAdmin && roleInfo.storeRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
                     {roleInfo.storeRole.charAt(0).toUpperCase() + roleInfo.storeRole.slice(1)}
                     {currentStore && ` • ${currentStore.name}`}
                   </Text>
                 )}
-                {!roleInfo.hasStoreAssignment && roleInfo.orgRole && (
+                {!roleInfo.isDeveloper && !roleInfo.isSuperAdmin && !roleInfo.hasStoreAssignment && roleInfo.orgRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
                     {roleInfo.orgRole.charAt(0).toUpperCase() + roleInfo.orgRole.slice(1)} • Not assigned to any store
                   </Text>
                 )}
-                {!roleInfo.hasStoreAssignment && !roleInfo.orgRole && (
+                {!roleInfo.isDeveloper && !roleInfo.isSuperAdmin && !roleInfo.hasStoreAssignment && !roleInfo.orgRole && (
                   <Text style={styles.roleText} numberOfLines={1}>
-                    Not assigned to any organization
+                    Default User
+                    {currentStore ? ` • ${currentStore.name}` : ' • No store selected'}
                   </Text>
                 )}
               </View>
@@ -118,30 +129,40 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
           })}
         </View>
 
-        {/* Developer Mode Section (Super Admin Only) */}
-        {roleInfo.isSuperAdmin && (
+        {/* Developer Mode Section (Super Admin & Developer) */}
+        {(roleInfo.isSuperAdmin || roleInfo.isDeveloper) && (
           <View style={styles.developerSection}>
             <View style={styles.developerHeader}>
-              <Text style={styles.developerTitle}>Developer Mode</Text>
-              <Switch
-                value={developerMode}
-                onValueChange={setDeveloperMode}
-                trackColor={{
-                  false: theme.colors.gray[300],
-                  true: theme.colors.warning.main,
-                }}
-                thumbColor={developerMode ? theme.colors.warning.dark : theme.colors.gray[500]}
-              />
+              <Text style={styles.developerTitle}>
+                {roleInfo.isDeveloper ? 'Developer Access' : 'Developer Mode'}
+              </Text>
+              {/* Only show toggle for superadmins, developers always have access */}
+              {roleInfo.isSuperAdmin && (
+                <Switch
+                  value={developerMode}
+                  onValueChange={setDeveloperMode}
+                  trackColor={{
+                    false: theme.colors.gray[300],
+                    true: theme.colors.warning.main,
+                  }}
+                  thumbColor={developerMode ? theme.colors.warning.dark : theme.colors.gray[500]}
+                />
+              )}
             </View>
             <Text style={styles.developerDescription}>
-              Bypass RLS policies and switch between organizations/locations
+              {roleInfo.isDeveloper 
+                ? 'Switch between organizations and stores'
+                : 'Bypass RLS policies and switch between organizations/locations'}
             </Text>
-            {developerMode && (
+            {/* Show switcher button if developer mode is enabled (superadmin) or user is a developer */}
+            {(developerMode || roleInfo.isDeveloper) && (
               <TouchableOpacity
                 style={styles.developerButton}
-                onPress={() => setShowDeveloperSwitcher(true)}
+                onPress={() => {
+                  setShowDeveloperSwitcher(true);
+                }}
               >
-                <Text style={styles.developerButtonText}>Switch Org/Location</Text>
+                <Text style={styles.developerButtonText}>Switch Org/Store</Text>
               </TouchableOpacity>
             )}
           </View>

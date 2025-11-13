@@ -5,11 +5,11 @@
 
 export function formatCents(
   cents: number,
-  locale: string = 'en-US',
-  currency: string = 'USD'
+  locale: string = "en-US",
+  currency: string = "USD"
 ): string {
   return new Intl.NumberFormat(locale, {
-    style: 'currency',
+    style: "currency",
     currency,
   }).format(cents / 100);
 }

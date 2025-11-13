@@ -48,19 +48,37 @@ export function DeveloperModeSwitcher({
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load all organizations (bypassing RLS in developer mode)
-      const { data: orgsData } = await supabase
+      // Load all organizations (RLS allows developers/superadmins to see all)
+      const { data: orgsData, error: orgsError } = await supabase
         .from('orgs')
         .select('id, name')
         .order('name');
 
-      // Load all stores
-      const { data: storesData } = await supabase
+      if (orgsError) {
+        console.error('Error loading orgs:', orgsError);
+        Alert.alert('Error', `Failed to load organizations: ${orgsError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      if (orgsData) {
+        setOrgs(orgsData);
+      }
+
+      // Load all stores (RLS allows developers/superadmins to see all)
+      const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select('*')
+        .eq('is_active', true)
         .order('name');
 
-      if (orgsData) setOrgs(orgsData);
+      if (storesError) {
+        console.error('Error loading stores:', storesError);
+        Alert.alert('Error', `Failed to load stores: ${storesError.message}`);
+        setLoading(false);
+        return;
+      }
+
       if (storesData) {
         const stores = storesData.map((store: any) => new Store(
           store.id,
@@ -73,12 +91,15 @@ export function DeveloperModeSwitcher({
         setAllStores(stores);
       }
 
-      // Set selected org based on current store
+      // Set selected org based on current store, or select first org if none
       if (currentStore) {
         setSelectedOrgId(currentStore.orgId);
+      } else if (orgsData && orgsData.length > 0) {
+        setSelectedOrgId(orgsData[0].id);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load organizations and stores');
+    } catch (error: any) {
+      console.error('Error in loadData:', error);
+      Alert.alert('Error', `Failed to load data: ${error?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

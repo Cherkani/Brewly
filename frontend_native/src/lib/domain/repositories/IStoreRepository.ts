@@ -20,5 +20,15 @@ export interface IStoreRepository {
    * Find stores accessible by a user
    */
   findByUser(userId: string): Promise<Store[]>;
+
+  /**
+   * Get the default store for a user (from their default role)
+   */
+  findDefaultByUser(userId: string): Promise<Store | null>;
+
+  /**
+   * Get all organizations (for developers/superadmins)
+   */
+  findAllOrgs(): Promise<Array<{ id: string; name: string }>>;
 }
 

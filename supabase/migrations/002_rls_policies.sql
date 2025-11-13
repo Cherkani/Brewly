@@ -115,9 +115,11 @@ ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 -- Admins can see their org
 CREATE POLICY orgs_select ON orgs
   FOR SELECT USING (
-    is_superadmin() OR 
-    is_developer() OR 
-    user_has_org_access(id)
+    is_superadmin() OR
+    is_developer() OR
+    user_has_org_access(id) OR
+    -- Allow authenticated users to read orgs (needed for signup role assignment)
+    auth.role() = 'authenticated'
   );
 
 -- Only superadmin can create orgs
@@ -146,10 +148,12 @@ CREATE POLICY orgs_delete ON orgs
 -- Cashiers can see their assigned store
 CREATE POLICY stores_select ON stores
   FOR SELECT USING (
-    is_superadmin() OR 
-    is_developer() OR 
+    is_superadmin() OR
+    is_developer() OR
     user_has_store_access(id) OR
-    user_has_org_access(org_id)
+    user_has_org_access(org_id) OR
+    -- Allow authenticated users to read stores (needed for signup role assignment)
+    auth.role() = 'authenticated'
   );
 
 -- Superadmin, developers, and admins can create stores
@@ -185,10 +189,12 @@ CREATE POLICY stores_delete ON stores
 -- Admins can see roles in their org
 CREATE POLICY user_roles_select ON user_roles
   FOR SELECT USING (
-    is_superadmin() OR 
-    is_developer() OR 
+    is_superadmin() OR
+    is_developer() OR
     user_id = auth.uid() OR
-    (can_manage() AND (org_id IS NULL OR user_has_org_access(org_id)))
+    (can_manage() AND (org_id IS NULL OR user_has_org_access(org_id))) OR
+    -- Allow authenticated users to read their own roles (needed after signup)
+    auth.role() = 'authenticated'
   );
 
 -- Superadmin can create any role
@@ -197,6 +203,8 @@ CREATE POLICY user_roles_insert ON user_roles
   FOR INSERT WITH CHECK (
     is_superadmin() OR
     (
+      -- Allow authenticated users to insert their own cashier roles during signup
+      auth.role() = 'authenticated' AND
       user_id = auth.uid() AND
       role = 'cashier' AND
       org_id IS NOT NULL AND

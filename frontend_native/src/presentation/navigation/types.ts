@@ -22,8 +22,6 @@ export type AuthStackParamList = {
 
 // Main Tab Navigator
 export type MainTabParamList = {
-  Home: undefined;
-  POS: undefined;
   Orders: undefined;
   Menu: undefined;
 };
@@ -66,17 +64,13 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> =
     NativeStackScreenProps<RootStackParamList>
   >;
 
+// Home and POS stacks are no longer in the main navigation
+// Keeping types for potential future use or backward compatibility
 export type HomeStackScreenProps<T extends keyof HomeStackParamList> =
-  CompositeScreenProps<
-    NativeStackScreenProps<HomeStackParamList, T>,
-    MainTabScreenProps<'Home'>
-  >;
+  NativeStackScreenProps<HomeStackParamList, T>;
 
 export type POSStackScreenProps<T extends keyof POSStackParamList> =
-  CompositeScreenProps<
-    NativeStackScreenProps<POSStackParamList, T>,
-    MainTabScreenProps<'POS'>
-  >;
+  NativeStackScreenProps<POSStackParamList, T>;
 
 export type OrdersStackScreenProps<T extends keyof OrdersStackParamList> =
   CompositeScreenProps<

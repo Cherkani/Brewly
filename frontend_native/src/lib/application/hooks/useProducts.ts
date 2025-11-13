@@ -14,10 +14,16 @@ export function useProducts(activeOnly: boolean = true) {
 
   const { data: products = [], isLoading, error, refetch } = useQuery({
     queryKey: ['products', currentStore?.id, activeOnly],
-    queryFn: () =>
-      currentStore
-        ? productRepository.findByStore(currentStore.id, activeOnly)
-        : Promise.resolve([]),
+    queryFn: async () => {
+      if (!currentStore) return [];
+
+      try {
+        return await productRepository.findByStore(currentStore.id, activeOnly);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        return [];
+      }
+    },
     enabled: !!currentStore,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

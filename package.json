@@ -1,0 +1,13 @@
+{
+  "name": "brewly-test",
+  "version": "1.0.0",
+  "description": "Test signup functionality",
+  "main": "test_signup.js",
+  "scripts": {
+    "test-signup": "node test_signup.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
+    "dotenv": "^17.2.3"
+  }
+}
